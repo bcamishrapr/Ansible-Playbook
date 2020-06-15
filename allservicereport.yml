@@ -1,0 +1,10 @@
+- name: checking service status
+  hosts: raghav
+  tasks:
+  - name: checking service status
+    service_facts:
+    register: services_state
+    ignore_errors: yes
+  - name: showing report
+    debug:
+     var: services_state

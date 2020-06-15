@@ -1,0 +1,15 @@
+---
+- hosts: raghav
+  gather_facts: no
+  tasks:
+  - name: display multiple file contents
+    command: cat '/tmp/foo.txt'
+    delegate_to: 127.0.0.1
+    register: my_items
+
+  - name: disbale these items
+    service: 
+      name: "{{item}}"
+      state: stopped 
+      enabled: yes
+    with_lines: cat /tmp/foo.txt

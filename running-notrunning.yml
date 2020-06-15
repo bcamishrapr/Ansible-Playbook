@@ -1,0 +1,29 @@
+---
+- hosts: raghav
+  gather_facts: no
+  vars:
+    newline_character: "\n"
+    services_running: []
+    services_NOT_running: []
+  tasks:
+  - name: populate service facts
+    service_facts:
+
+  - name: populate running services
+    set_fact:
+      services_running: "{{ services_running + [item] }}"
+      state: status
+    when: hostvars[inventory_hostname]['services']['{{item}}']['state'] == "running"
+    with_items: "{{ hostvars[inventory_hostname]['services'].keys() }}"
+
+  - name: populate NOT running services
+    set_fact:
+      services_NOT_running: "{{ services_NOT_running + [item] }}"
+    when: hostvars[inventory_hostname]['services']['{{item}}']['state'] != "running"
+    with_items: "{{ hostvars[inventory_hostname]['services'].keys() }}"
+
+  - debug:
+      msg: "running services:\n {{ services_running }}"
+
+  - debug:
+      msg: "NOT running services:\n {{ services_NOT_running }}"
