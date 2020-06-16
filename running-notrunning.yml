@@ -15,15 +15,37 @@
       state: status
     when: hostvars[inventory_hostname]['services']['{{item}}']['state'] == "running"
     with_items: "{{ hostvars[inventory_hostname]['services'].keys() }}"
+  - local_action: copy content={{ services_running }} dest=hosts/{{ inventory_hostname }}/runningservices.txt
+  - debug:
+      msg: "Arranging the Files "
+  - local_action: shell cat hosts/{{ inventory_hostname }}/runningservices.txt|sed 's/[][]//g'|sed 's/"//g'|sed 's/,//g'|sed 's/ /\n/g' >hosts/{{ inventory_hostname }}/servicesrunning.txt
+  - local_action: shell sort -o hosts/{{ inventory_hostname }}/servicesrunningsorted.txt hosts/{{ inventory_hostname }}/servicesrunning.txt  && sort -o hosts/{{ inventory_hostname }}/mysortedlist.txt hosts/{{ inventory_hostname }}/mylist.txt
+  - local_action: shell diff hosts/{{ inventory_hostname }}/mysortedlist.txt  hosts/{{ inventory_hostname }}/servicesrunningsorted.txt |grep ">"|cut -c 3-  > hosts/{{ inventory_hostname }}/servicedisablelist.txt
+  - name: Reading the service List Files
+    command: cat 'hosts/{{ inventory_hostname }}/servicedisablelist.txt'
+    delegate_to: 127.0.0.1
+    register: my_items
+
+  - name: disbale these items
+    service:
+      name: "{{item}}"
+      state: stopped
+      enabled: yes
+    with_lines: cat hosts/{{ inventory_hostname }}/servicedisablelist.txt
 
   - name: populate NOT running services
     set_fact:
       services_NOT_running: "{{ services_NOT_running + [item] }}"
     when: hostvars[inventory_hostname]['services']['{{item}}']['state'] != "running"
     with_items: "{{ hostvars[inventory_hostname]['services'].keys() }}"
+  - local_action: copy content={{ services_NOT_running }} dest=hosts/{{ inventory_hostname }}/notrunningservices.txt
 
   - debug:
-      msg: "running services:\n {{ services_running }}"
+      msg: "Arranging the Files "
+  - local_action: shell cat hosts/{{ inventory_hostname }}/notrunningservices.txt|sed 's/[][]//g'|sed 's/"//g'|sed 's/,//g'|sed 's/ /\n/g' >hosts/{{ inventory_hostname }}/servicesnotrunning.txt
 
   - debug:
-      msg: "NOT running services:\n {{ services_NOT_running }}"
+      msg: "running services:========== {{ services_running }}"
+
+  - debug:
+      msg: "NOT running services:=========== {{ services_NOT_running }}"
